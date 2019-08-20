@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="_old\**" />
+    <EmbeddedResource Remove="_old\**" />
+    <None Remove="_old\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove=".gitignore" />
+    <None Remove="parser.sublime-project" />
+    <None Remove="parser.sublime-workspace" />
+    <None Remove="_notes.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="NBagOfTricks">
+      <HintPath>lib\NBagOfTricks.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,9 @@
+/.vs
+/obj
+/bin
+/_original
+/_old
+/parser.sublime-project
+/parser.sublime-workspace
+/*.out
+/_notes.txt
