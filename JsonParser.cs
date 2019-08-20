@@ -7,7 +7,7 @@ using System.Net;
 using System.Text;
 
 
-namespace Parser
+namespace NParser
 {
     /// <summary>
     /// This is a partial implementation of a json parser.

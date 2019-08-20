@@ -7,7 +7,7 @@ using System.Net;
 using System.Text;
 
 
-namespace Parser
+namespace NParser
 {
     public class ParserCore
     {

@@ -5,7 +5,7 @@ using System.Text;
 using NBagOfTricks;
 using NBagOfTricks.PNUT;
 
-namespace Parser
+namespace NParser
 {
 	class Program
 	{
