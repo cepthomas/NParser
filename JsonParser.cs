@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 
@@ -59,6 +60,7 @@ namespace NParser
         public override object Parse()
         {
             object obj = null;
+            _inIndex = 0;
 
             try
             {
@@ -116,7 +118,7 @@ namespace NParser
                 if(Current == '\"')
                 {
                     // Collect element name.
-                    ConsumeQuotedString();
+                    ConsumeQuotedString(false);
                     var elname = CaptureBuffer.ToString();
 
                     // Collect element value.
@@ -227,7 +229,7 @@ namespace NParser
 
             if (Current == '\"') // it's a string
             {
-                ConsumeQuotedString();
+                ConsumeQuotedString(false);
                 obj = CaptureBuffer.ToString();
             }
             else // other than string
@@ -273,8 +275,10 @@ namespace NParser
         /// <summary>
         /// Process the Current value. Removes comments and whitespace.
         /// </summary>
-        public void Clean()
+        public void Clean([CallerMemberName] string caller = null)
         {
+            //Debug.WriteLine($"Clean {caller}");
+
             bool cmt = true;
             bool ws = true;
             ClearCapture();

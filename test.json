@@ -51,7 +51,7 @@
             },
         },
 
-        "Some true Thing" : "true", // TODO should fail!
+        "Some true Thing" : true, // TODO should fail!
 
         {
             "ItMagnification": {
@@ -59,7 +59,7 @@
                 "Value": 208
             },
 
-            "Some null Thing" : "null",
+            "Some null Thing" : null,
 
             "ItSkew": {
                 "Original": 639,
@@ -70,9 +70,9 @@
         "Plain string",
         98765,
         5.5509,
-        "true",
-        "false",
-        "null"
+        true,
+        false,
+        null
 
         {
             "ItKeystone": {
@@ -81,7 +81,7 @@
             },
             "ItMagnification": {
                 "Original": 61235,
-                "Some false Thing" : "false",
+                "Some false Thing" : false,
                 "Value": -45
             },
             "ItPosition": {

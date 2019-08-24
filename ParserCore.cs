@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 
@@ -41,6 +42,11 @@ namespace NParser
         TextReader _reader = null;
 
         /// <summary></summary>
+        protected int _inIndex = 0;
+        #endregion
+
+        #region Constants
+        /// <summary></summary>
         public const string HEX_DIGITS = "0123456789ABCDEFabcdef";
 
         /// <summary>Win uses "\r\n", nx uses "\n". This guarantees eol.</summary>
@@ -56,6 +62,7 @@ namespace NParser
         public ParserCore(TextReader reader)
         {
             _reader = reader;
+            _inIndex = 0;
 
             Column = 0;
             Line = 1;
@@ -63,7 +70,7 @@ namespace NParser
         #endregion
 
         /// <summary>
-        /// Derived classes please implement.
+        /// Derived classes must implement.
         /// </summary>
         /// <returns></returns>
         public virtual object Parse()
@@ -74,8 +81,11 @@ namespace NParser
         /// <summary>
         /// Processes the input queue one char at a time. Does internal boilerplate stuff.
         /// </summary>
-        public void Advance()
+        protected void Advance([CallerMemberName] string caller = null)
         {
+            //Debug.WriteLine($"Advance {caller}");
+            _inIndex++;
+
             int i = _reader.Read();
             Current = (char)i;
 
@@ -113,7 +123,7 @@ namespace NParser
         /// <summary>
         /// Reset capture buffer.
         /// </summary>
-        public void ClearCapture()
+        protected void ClearCapture()
         {
             CaptureBuffer.Clear();
         }
@@ -121,7 +131,7 @@ namespace NParser
         /// <summary>
         /// Add the Current value to the capture buffer.
         /// </summary>
-        public void CaptureCurrent()
+        protected void CaptureCurrent()
         {
             CaptureBuffer.Append(Current);
         }
@@ -129,7 +139,7 @@ namespace NParser
         /// <summary>
         /// Add the value to the capture buffer.
         /// </summary>
-        public void Capture(char ch)
+        protected void Capture(char ch)
         {
             CaptureBuffer.Append(ch);
         }
@@ -138,7 +148,7 @@ namespace NParser
         /// Peekaboo one ahead.
         /// </summary>
         /// <returns></returns>
-        public int Peek()
+        protected int Peek()
         {
             return _reader.Peek();
         }
@@ -148,7 +158,7 @@ namespace NParser
         /// Throws and exception if not a match.
         /// </summary>
         /// <param name="expecting">Match values.</param>
-        public void Expecting(string expecting)
+        protected void Expecting(string expecting)
         {
             if (!expecting.Contains(Current))
             {
@@ -168,7 +178,7 @@ namespace NParser
         /// <param name="chars">Chars to match.</param>
         /// <param name="pt">Capture or skip option.</param>
         /// <returns>true if any found</returns>
-        public bool ConsumeUntilChar(string chars, ParseType pt = ParseType.Capture)
+        protected bool ConsumeUntilChar(string chars, ParseType pt = ParseType.Capture)
         {
             bool any = false;
             ClearCapture();
@@ -196,7 +206,7 @@ namespace NParser
         /// <param name="str">String to match.</param>
         /// <param name="pt">Capture or skip option.</param>
         /// <returns>true if any found</returns>
-        public bool ConsumeUntilString(string str, ParseType pt = ParseType.Capture)
+        protected bool ConsumeUntilString(string str, ParseType pt = ParseType.Capture)
         {
             bool any = false;
             ClearCapture();
@@ -239,17 +249,23 @@ namespace NParser
         }
 
         /// <summary>
-        /// Captures a quoted string including escaped values. Removes leading and trailing quotes.
+        /// Captures a quoted string including escaped values.
         /// Current is left on value immediately after the string.
         /// </summary>
+        /// <param name="inclQuotes">Option to keep or remove leading and trailing quotes.</param>
         /// <returns>true if string found</returns>
-        public bool ConsumeQuotedString()
+        protected bool ConsumeQuotedString(bool inclQuotes)
         {
             bool any = false;
             ClearCapture();
 
             if(Current == '\"')
             {
+                if(inclQuotes)
+                {
+                    CaptureCurrent();
+                }
+
                 bool escaped = false;
                 bool done = false;
 
@@ -284,42 +300,24 @@ namespace NParser
                 }
 
                 any = true;
+
+                if (inclQuotes)
+                {
+                    CaptureCurrent();
+                }
+
                 Advance(); // trailing quote
             }
 
             return any;
         }
 
-        // /// <summary>
-        // /// Skips over comments and whitespace.
-        // /// Current is left on value immediately after any found.
-        // /// </summary>
-        // /// <returns>true if any found</returns>
-        // public bool ConsumeCommentsAndWhitespace()
-        // {
-        //     bool cmt = true;
-        //     bool ws = true;
-        //     bool any = false;
-        //     ClearCapture();
-
-        //     // Make sure we get all of them.
-        //     while (cmt || ws)
-        //     {
-        //         cmt = ConsumeWhiteSpace();
-        //         ws = ConsumeComment(ParseType.Skip);
-        //         any |= cmt;
-        //         any |= ws;
-        //     }
-
-        //     return any;
-        // }
-
         /// <summary>
         /// Skip over any whitespace.
         /// Current is left on value immediately after any.
         /// </summary>
         /// <returns>true if any found</returns>
-        public bool ConsumeWhiteSpace()
+        protected bool ConsumeWhiteSpace()
         {
             bool any = false;
             ClearCapture();
@@ -339,7 +337,7 @@ namespace NParser
         /// </summary>
         /// <param name="pt">Capture or skip option.</param>
         /// <returns>true if any found</returns>
-        public bool ConsumeCComment(ParseType pt = ParseType.Skip)
+        protected bool ConsumeCComment(ParseType pt = ParseType.Skip)
         {
             bool any = false;
             ClearCapture();
@@ -372,11 +370,126 @@ namespace NParser
         }
 
         /// <summary>
+        /// Capture or skip a Lua comment. Supports single and multi line flavors.
+        /// Current is left on value immediately after any.
+        /// </summary>
+        /// <param name="pt">Capture or skip option.</param>
+        /// <returns>true if any found</returns>
+        protected bool ConsumeLuaComment(ParseType pt = ParseType.Skip)//TODO
+        {
+            bool any = false;
+
+            //    Single line: -- A comment to the end of the line.
+            //    Lua also offers block comments, which start with --[[and run until the corresponding]]. But not ---[[
+
+            return any;
+        }
+
+        /// <summary>
+        /// Capture or skip a Python comment. Supports single and multi line flavors.
+        /// Current is left on value immediately after any.
+        /// </summary>
+        /// <param name="pt">Capture or skip option.</param>
+        /// <returns>true if any found</returns>
+        protected bool ConsumePythonComment(ParseType pt = ParseType.Skip)//TODO
+        {
+            bool any = false;
+
+            // # single line comment
+
+            // A docstring is a string literal that occurs as the first statement in a module, function, class,
+            // or method definition. Such a // docstring becomes the __doc__ special attribute of that object.
+            // 
+            // class ExampleError(Exception):
+            // def example_generator(n):
+            // class ExampleClass(object):
+            // """Example function with PEP 484 type annotations.
+            // 
+            // Args:
+            //     param1: The first parameter.
+            //     param2: The second parameter.
+            // 
+            // Returns:
+            //     The return value. True for success, False otherwise.
+            // 
+            // """
+            return any;
+        }
+
+        /// <summary>
+        /// Remove all whitespace and C comments.
+        /// </summary>
+        /// <returns>Cleaned string.</returns>
+        public string CleanAll()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            List<(int line, int col)> refs = new List<(int, int)>();
+
+            int outind = 0;
+
+            try
+            {
+                Advance(); // start the parser
+                bool done = false; // relies on throwing exception when done.
+                while (!done)
+                {
+                    (int line, int col) start = (Line, Column);
+                    if (Current == '/')
+                    {
+                        if(!ConsumeCComment())
+                        {
+                            // Probably just division, keep it.
+                            sb.Append(Current);
+                            refs.Add(start);
+                            outind++;
+                            Advance();
+                        }
+                    }
+                    else if (Current == '\"')
+                    {
+                        ConsumeQuotedString(true);
+                        sb.Append(CaptureBuffer);
+                        refs.Add(start);
+                        outind += CaptureBuffer.Length;
+                    }
+                    else if (char.IsWhiteSpace(Current))
+                    {
+                        // ignore
+                        Advance();
+                    }
+                    else
+                    {
+                        sb.Append(Current);
+                        refs.Add(start);
+                        outind++;
+                        Advance();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex is ParseException && (ex as ParseException).ExceptionType == ParseException.ParseExceptionType.Done)
+                {
+                    // Ran out of input - normal end.
+                }
+                else
+                {
+                    // Real error.
+                    Errors.Add(ex.ToString());
+                    //obj = null;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
         /// Test for hex value chars.
         /// </summary>
         /// <param name="hex">The char to test.</param>
         /// <returns>true if hex</returns>
-        public bool IsHexChar(char hex)
+        protected bool IsHexChar(char hex)
         {
             return HEX_DIGITS.Contains(hex);
         }

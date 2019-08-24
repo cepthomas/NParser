@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Diagnostics;
 using NBagOfTricks;
 using NBagOfTricks.PNUT;
 
@@ -13,7 +14,11 @@ namespace NParser
 		{
             string PATH = @"..\..\..";
 
-            DoOneFlavor($@"{PATH}\test.json", typeof(JsonParser));
+            //DoOneFlavor($@"{PATH}\test.json", typeof(JsonParser));
+
+            StringReader srdr = new StringReader(File.ReadAllText($@"{PATH}\test.json"));
+            ParserCore pc = new ParserCore(srdr);
+            Debug.Write(pc.CleanAll());
         }
 
         static void DoOneFlavor(string fname, Type t)
