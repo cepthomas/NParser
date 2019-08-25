@@ -51,7 +51,7 @@
             },
         },
 
-        "Some true Thing" : true, // TODO should fail!
+        "Some true Thing" : true, // TODO simple kv pairs not supported
 
         {
             "ItMagnification": {

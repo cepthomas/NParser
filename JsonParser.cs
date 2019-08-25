@@ -283,7 +283,7 @@ namespace NParser
             bool ws = true;
             ClearCapture();
 
-            // Make sure we get all of them, in any order. TODO optimize?
+            // Make sure we get all of them, in any order.
             while (cmt || ws)
             {
                 cmt = ConsumeWhiteSpace();
